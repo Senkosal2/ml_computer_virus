@@ -10,6 +10,12 @@ services:
     volumes:
       - oradb_data:/opt/oracle/oradata
       - ./oracle-init:/opt/oracle/scripts/startup
+      - ./oracle-file:/home/oracle
+    healthcheck:
+      test: ["CMD-SHELL", "bash -lc 'lsnrctl status | grep -q \"READY\" || exit 1'"]
+      interval: 30s
+      timeout: 15s
+      retries: 40
     networks:
       - appnet
 
@@ -21,13 +27,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      ORACLE_HOST: "oradb"        # docker service name
+      ORACLE_HOST: "oradb"
       ORACLE_PORT: "1521"
-      ORACLE_SERVICE: "oradb1"    # PDB / service name
+      ORACLE_SERVICE: "oradb1"
       ORACLE_USER: "mlusr"
       ORACLE_PASSWORD: "123"
     depends_on:
-      - oradb
+      oradb:
+        condition: service_healthy
     networks:
       - appnet
 

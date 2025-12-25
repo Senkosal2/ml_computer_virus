@@ -8,6 +8,7 @@ from .serializers import RequestPEFileSerializer, DataPEFeatureSerializer
 from .features import PEFeatureExtractor
 import lightgbm as lgb
 import numpy as np
+from pathlib import Path
 
 import json
 
@@ -30,7 +31,11 @@ class DataPEFeatureViewSet(viewsets.ViewSet):
             features = extractor.feature_vector(bytez)
             print("Extracted feature shape:", features.shape)
             
-            model = lgb.Booster(model_file="ml\\computer_virus_detection_ember_lightGBM.txt")
+            BASE_DIR = Path(__file__).resolve().parent.parent  # /app
+            MODEL_PATH = BASE_DIR / "computer_virus_detection_ember_lightGBM.txt"
+            
+            model = lgb.Booster(model_file=MODEL_PATH)
+            
 
             prediction_prob = model.predict(np.array([features]))[0]
             features_list = [float(x) for x in features.tolist()] 
