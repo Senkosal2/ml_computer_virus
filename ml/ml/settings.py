@@ -37,9 +37,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'computer_virus',
+    'rest_framework',
+    'corsheaders'
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -72,12 +76,31 @@ WSGI_APPLICATION = 'ml.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.oracle",
+#         # "NAME": "FODB",
+#         "NAME": "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1522))(CONNECT_DATA=(SERVICE_NAME=mldb1)))",  # PDB service name
+#         "USER": "mlusr",
+#         "PASSWORD": "123"
+#     }
+# }
+import os
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.oracle",
+        "NAME": (
+            "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)"
+            f"(HOST={os.getenv('ORACLE_HOST','oradb')})"
+            f"(PORT={os.getenv('ORACLE_PORT','1521')}))"
+            f"(CONNECT_DATA=(SERVICE_NAME={os.getenv('ORACLE_SERVICE','oradb1')})))"
+        ),
+        "USER": os.getenv("ORACLE_USER", "mlusr"),
+        "PASSWORD": os.getenv("ORACLE_PASSWORD", "123"),
     }
 }
+
 
 
 # Password validation
@@ -99,6 +122,12 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+]
+
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
@@ -115,3 +144,5 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+CORS_ALLOW_ALL_ORIGINS = True

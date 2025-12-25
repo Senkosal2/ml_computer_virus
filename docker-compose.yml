@@ -1,0 +1,51 @@
+services:
+  oradb:
+    image: container-registry.oracle.com/database/enterprise:19.3.0.0
+    container_name: oradb
+    ports:
+      - "1521:1521"
+    environment:
+      ORACLE_PWD: "oracle"
+      ORACLE_CHARACTERSET: "AL32UTF8"
+    volumes:
+      - oradb_data:/opt/oracle/oradata
+      - ./oracle-init:/opt/oracle/scripts/startup
+    networks:
+      - appnet
+
+  ml:
+    build:
+      context: ./ml
+      dockerfile: Dockerfile
+    container_name: ml-api
+    ports:
+      - "8000:8000"
+    environment:
+      ORACLE_HOST: "oradb"        # docker service name
+      ORACLE_PORT: "1521"
+      ORACLE_SERVICE: "oradb1"    # PDB / service name
+      ORACLE_USER: "mlusr"
+      ORACLE_PASSWORD: "123"
+    depends_on:
+      - oradb
+    networks:
+      - appnet
+
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    container_name: ui-web
+    ports:
+      - "8080:80"
+    depends_on:
+      - ml
+    networks:
+      - appnet
+
+volumes:
+  oradb_data:
+
+networks:
+  appnet:
+    driver: bridge

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virus detection</title>
+
+  <link rel="stylesheet" href="./assets/css/style.css">
+  <link rel="stylesheet" href="./assets/bootstrap-5.3.8/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="./assets/loading-bar/dist/loading-bar.min.css">
+</head>
+
+<body class="bg-dark">
+  <div class="container bg-dark text" id="body">
+
+    <!-- KEEP AS-IS -->
+    <div class="logo-biohazard">
+      <img src="./assets/image/bio.svg" class="blink glow" alt="" width="100%">
+    </div>
+
+    <!-- KEEP AS-IS -->
+    <form id="upload" enctype="multipart/form-data">
+      <input type="file" id="pe_file" name="pe_file" hidden>
+      <button class="upload text-white" id="btnUpload">
+        <div class="loader"></div>
+      </button>
+    </form>
+
+    <!-- Modal -->
+    <div class="modal fade"
+         id="staticBackdrop"
+         data-bs-backdrop="static"
+         data-bs-keyboard="false"
+         tabindex="-1"
+         aria-labelledby="staticBackdropLabel"
+         aria-hidden="true">
+
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+          <div class="modal-header">
+            <!-- KEEP THIS PREDICTION RESULT BLOCK (we will HIDE it while loading) -->
+            <div class="prediction-result d-none" id="predictionHeader">
+              <div class="prediction-icon">
+                <img src="./assets/image/bio-white.svg" alt="" id="icon" width="100%">
+              </div>
+              <div class="prediction-message">
+                Prediction: <span id="predictionText">...</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-body">
+            <!-- ✅ Loading FIRST (shown while request runs) -->
+            <div class="processing" id="processingBox">
+              <div class="d-flex align-items-center gap-3">
+                <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                <div>
+                  <div class="fw-bold">Scanning file…</div>
+                  <div class="text-muted small">Please wait while we analyze your PE file.</div>
+                </div>
+              </div>
+
+              <div class="mt-3">
+                <div id="myItem1" data-preset="circle" data-value="35"></div>
+              </div>
+            </div>
+
+            <!-- ✅ Result ONLY after completed -->
+            <div class="analysis-summary d-none" id="summaryBox">
+              <h4 class="text-primary">Analysis Summary</h4>
+              <ul>
+                <li><h6>File Name: <span id="sumFilename">-</span></h6></li>
+                <li><h6>Prediction time: <span id="sumTime">-</span></h6></li>
+                <li><h6>Malware probability: <span id="sumMalProb">-</span></h6></li>
+              </ul>
+
+              <!-- ✅ Keep at least the bar chart -->
+              <canvas id="chart-prediction" height="110"></canvas>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="./assets/jquery/jquery-3.7.1.min.js"></script>
+  <script src="./assets/bootstrap-5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script src="./assets/chartjs/chartjs.min.js"></script>
+
+  <script>
+    $(document).ready(() => {
+      let form = $('#upload');
+      let pe_file = $('#pe_file');
+      let btnUpload = $('#btnUpload');
+
+      const modalEl = document.getElementById('staticBackdrop');
+      const modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+
+      const $processingBox = $('#processingBox');
+      const $summaryBox = $('#summaryBox');
+      const $predictionHeader = $('#predictionHeader');
+
+      // Loading bar (ldBar)
+      let bar = null;
+      try {
+        if (window.ldBar) bar = new ldBar("#myItem1");
+      } catch(e) {}
+
+      // Chart.js bar chart
+      let chartInstance = null;
+      function renderProbChart(malwareProb) {
+        const canvas = document.getElementById("chart-prediction");
+        if (!canvas || typeof Chart === "undefined") return;
+
+        const pM = Number(malwareProb);
+        const safePM = Number.isFinite(pM) ? Math.max(0, Math.min(1, pM)) : 0;
+
+        const pB = 1 - safePM;
+
+        if (chartInstance) chartInstance.destroy();
+
+        chartInstance = new Chart(canvas, {
+          type: "bar",
+          data: {
+            labels: ["BENIGN", "MALWARE"],
+            datasets: [{
+              label: "Probability",
+              data: [pB, safePM]
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: { beginAtZero: true, max: 1 }
+            }
+          }
+        });
+      }
+
+      function showLoadingUI() {
+        // show loading, hide result + prediction header
+        $processingBox.removeClass('d-none');
+        $summaryBox.addClass('d-none');
+        $predictionHeader.addClass('d-none');
+
+        if (bar) bar.set(35); // initial value
+      }
+
+      function showResultUI() {
+        // show result + prediction header, hide loading
+        $processingBox.addClass('d-none');
+        $summaryBox.removeClass('d-none');
+        $predictionHeader.removeClass('d-none');
+      }
+
+        function setPredictionUI(predictionUpper) {
+        const header = $('#predictionHeader');
+        const icon = $('#icon');
+
+        const p = String(predictionUpper).toUpperCase();
+        $('#predictionText').text(p);
+
+        // Reset state
+        header.removeClass('malware safe');
+
+        if (p.includes('MAL')) {
+            // 🚨 MALWARE
+            icon.attr('src', './assets/image/bio-white.svg');
+            header.addClass('malware');
+        } else {
+            // ✅ SAFE / BENIGN
+            icon.attr('src', './assets/image/safe.svg');
+            header.addClass('safe');
+        }
+        }
+
+
+      function setSummaryUI({ filename, malwareProb }) {
+        $('#sumFilename').text(filename || '-');
+        $('#sumTime').text(new Date().toLocaleString());
+
+        if (malwareProb !== undefined && malwareProb !== null && malwareProb !== '') {
+          $('#sumMalProb').text((Number(malwareProb) * 100).toFixed(2) + '%');
+        } else {
+          $('#sumMalProb').text('-');
+        }
+      }
+
+      // Upload button -> open file picker
+      btnUpload.on('click', function(e) {
+        e.preventDefault();
+        pe_file.trigger('click');
+      });
+
+      // Auto submit on select
+      pe_file.on('change', function() {
+        if (pe_file[0].files.length > 0) {
+          form.trigger('submit');
+        }
+      });
+
+      form.on('submit', function(e) {
+        e.preventDefault();
+
+        const file = pe_file[0].files && pe_file[0].files[0];
+        if (!file) return;
+
+        const formData = new FormData(this);
+
+        // ✅ Open modal and show LOADING FIRST
+        if (modal) modal.show();
+        showLoadingUI();
+
+        $.ajax({
+          url: "http://localhost:8000/computer-virus/api/predict/",
+          method: "POST",
+          data: formData,
+          processData: false,
+          contentType: false,
+
+          success: function(response) {
+            console.log("API response:", response);
+
+            // ✅ Use the EXACT response you provided:
+            // filename: "Code.exe"
+            // prediction: "BENIGN"
+            // "Malware probability": 0.0486...
+            const filename = response.filename || file.name || "";
+            const prediction = String(response.prediction || "UNKNOWN").toUpperCase();
+            const malwareProb = response["Malware probability"]; // key with space
+
+            setPredictionUI(prediction);
+            setSummaryUI({ filename, malwareProb });
+
+            // Update loading bar to malware probability %
+            if (bar && malwareProb !== undefined && malwareProb !== null && malwareProb !== '') {
+              bar.set(Number(malwareProb) * 100);
+            }
+
+            // ✅ Keep at least bar chart (Chart.js)
+            renderProbChart(malwareProb);
+
+            // ✅ Show result ONLY after request completed
+            showResultUI();
+          },
+
+          error: function(err) {
+            console.error("API error:", err);
+
+            setPredictionUI("FAILED");
+            setSummaryUI({ filename: '-', malwareProb: '' });
+
+            if (bar) bar.set(0);
+            renderProbChart(0);
+
+            // show result so user sees failed state
+            showResultUI();
+          },
+
+          complete: function() {
+            pe_file.val('');
+          }
+        });
+      });
+
+      // Reset modal state when closed
+      modalEl?.addEventListener('hidden.bs.modal', () => {
+        showLoadingUI();
+        $('#predictionText').text('...');
+        $('#sumFilename').text('-');
+        $('#sumTime').text('-');
+        $('#sumMalProb').text('-');
+        $('#icon').attr('src', './assets/image/bio-white.svg');
+
+        if (bar) bar.set(35);
+
+        if (chartInstance) {
+          chartInstance.destroy();
+          chartInstance = null;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
