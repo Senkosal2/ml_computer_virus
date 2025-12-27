@@ -71,7 +71,13 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'ml.wsgi.application'
-
+# sqlite
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -87,19 +93,19 @@ WSGI_APPLICATION = 'ml.wsgi.application'
 # }
 import os
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.oracle",
-        "NAME": (
-            "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)"
-            f"(HOST={os.getenv('ORACLE_HOST','oradb')})"
-            f"(PORT={os.getenv('ORACLE_PORT','1521')}))"
-            f"(CONNECT_DATA=(SERVICE_NAME={os.getenv('ORACLE_SERVICE','oradb1')})))"
-        ),
-        "USER": os.getenv("ORACLE_USER", "mlusr"),
-        "PASSWORD": os.getenv("ORACLE_PASSWORD", "123"),
-    }
-}
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.oracle",
+#         "NAME": (
+#             "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)"
+#             f"(HOST={os.getenv('ORACLE_HOST','oradb')})"
+#             f"(PORT={os.getenv('ORACLE_PORT','1521')}))"
+#             f"(CONNECT_DATA=(SERVICE_NAME={os.getenv('ORACLE_SERVICE','oradb1')})))"
+#         ),
+#         "USER": os.getenv("ORACLE_USER", "mlusr"),
+#         "PASSWORD": os.getenv("ORACLE_PASSWORD", "123"),
+#     }
+# }
 
 
 
