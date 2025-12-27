@@ -1,24 +1,4 @@
 services:
-  oradb:
-    image: container-registry.oracle.com/database/enterprise:19.3.0.0
-    container_name: oradb
-    ports:
-      - "1521:1521"
-    environment:
-      ORACLE_PWD: "oracle"
-      ORACLE_CHARACTERSET: "AL32UTF8"
-    volumes:
-      - oradb_data:/opt/oracle/oradata
-      - ./oracle-init:/opt/oracle/scripts/startup
-      - ./oracle-file:/home/oracle
-    healthcheck:
-      test: ["CMD-SHELL", "bash -lc 'lsnrctl status | grep -q \"READY\" || exit 1'"]
-      interval: 30s
-      timeout: 15s
-      retries: 40
-    networks:
-      - appnet
-
   ml:
     build:
       context: ./ml
@@ -26,15 +6,9 @@ services:
     container_name: ml-api
     ports:
       - "8000:8000"
-    environment:
-      ORACLE_HOST: "oradb"
-      ORACLE_PORT: "1521"
-      ORACLE_SERVICE: "oradb1"
-      ORACLE_USER: "mlusr"
-      ORACLE_PASSWORD: "123"
-    depends_on:
-      oradb:
-        condition: service_healthy
+    volumes:
+      # Persist Django default SQLite DB (db.sqlite3) in your project folder
+      - ./ml:/app
     networks:
       - appnet
 
@@ -49,9 +23,6 @@ services:
       - ml
     networks:
       - appnet
-
-volumes:
-  oradb_data:
 
 networks:
   appnet:
