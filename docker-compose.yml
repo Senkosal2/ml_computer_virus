@@ -9,8 +9,8 @@ services:
       ORACLE_CHARACTERSET: "AL32UTF8"
     volumes:
       - oradb_data:/opt/oracle/oradata
-      - ./oracle-init:/opt/oracle/scripts/startup
-      - ./oracle-file:/home/oracle
+      - ./oracle-init:/opt/oracle/scripts/startup:z
+      - ./oracle-file:/home/oracle:z
     healthcheck:
       test: ["CMD-SHELL", "bash -lc 'lsnrctl status | grep -q \"READY\" || exit 1'"]
       interval: 30s
