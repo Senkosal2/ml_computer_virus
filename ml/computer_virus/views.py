@@ -54,7 +54,7 @@ class DataPEFeatureViewSet(viewsets.ViewSet):
             
             data_instance = DataPEFeatureSerializer(data={
                 'features': d_features,  # ensure JSON serializable
-                'label': 1
+                'label': 1 if prediction_prob >= 0.5 else 0
             })
             if data_instance.is_valid():
                 data_instance.save()
