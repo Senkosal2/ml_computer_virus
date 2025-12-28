@@ -24,4 +24,4 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY . /app
 
 EXPOSE 8000
-CMD ["bash", "-lc", "python /app/wait_for_oracle.py && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+CMD ["bash", "-lc", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]

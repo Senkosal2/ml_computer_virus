@@ -8,7 +8,7 @@ services:
       - "8000:8000"
     volumes:
       # Persist Django default SQLite DB (db.sqlite3) in your project folder
-      - ./ml:/app
+      - ./ml:/app:z
     networks:
       - appnet
 

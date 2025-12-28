@@ -1,9 +1,10 @@
-FROM nginx:alpine
+FROM httpd:alpine
 
-# Remove default nginx site
-RUN rm -rf /usr/share/nginx/html/*
+# Remove default Apache site content
+RUN rm -rf /usr/local/apache2/htdocs/*
 
 # Copy your UI files
-COPY . /usr/share/nginx/html
+COPY . /usr/local/apache2/htdocs/
 
+# Expose HTTP port
 EXPOSE 80
